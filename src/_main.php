@@ -1,6 +1,6 @@
 <?php
 
-$playerPod = new Pod('player');
+$playerPod = new Pod('player', true);
 $enemyPod = new Pod('enemy');
 
 while (true) {
@@ -12,6 +12,7 @@ while (true) {
     // 5: angle between your pod orientation and the direction of the next checkpoint
     $playerInput = new PodInput(fscanf(STDIN, "%d %d %d %d %d %d"));
     $playerPod->update($playerInput);
+
 
     // 0: x position of the pod
     // 1: y position of the pod

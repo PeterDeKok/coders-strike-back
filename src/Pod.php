@@ -17,13 +17,19 @@ class Pod implements CircleInterface {
     protected $target; // TODO Should these be here?
     protected $angleToTarget = 0; // TODO Should these be here?
     protected $distanceToTarget = 0; // TODO Should these be here?
+    protected $booster = false;
+    protected $boosted = false;
+    protected $lastDist = 0;
+    protected $thrustDiff = 0;
+    protected $lap = 0;
 
-    public function __construct(string $owner) {
+    public function __construct(string $owner, bool $booster = false) {
         $this->checkpoints = new CheckpointCollection();
         $this->radius = 400;
         $this->owner = $owner;
         $this->point = new Point(0, 0); // Dummy point... The pod needs to be somewhere
         $this->target = new Checkpoint(new Point(0, 0)); // Dummy checkpoint... The pod needs to go somewhere
+        $this->booster = $booster;
     }
 
     /**
@@ -42,6 +48,8 @@ class Pod implements CircleInterface {
         // 3: y position of the next check point
         // 4: distance to the next checkpoint
         // 5: angle between your pod orientation and the direction of the next checkpoint
+
+        $this->lastDist = $input->getPoint()->distanceTo($this) * 10000;
 
         $this->point = $input->getPoint();
 
@@ -68,8 +76,14 @@ class Pod implements CircleInterface {
 
         $this->setTarget($nextCheckpoint);
 
-        if (!$lastCheckpoint->compare($lastCheckpoint))
-            $lastCheckpoint->hit();
+        $newThrust = $this->calculateThrust();
+
+        $this->thrustDiff = $newThrust - $this->thrust;
+
+        $this->setThrust($newThrust);
+
+        if (!$nextCheckpoint->compare($lastCheckpoint))
+            $this->lap = $lastCheckpoint->hit();
     }
 
     /**
@@ -126,25 +140,76 @@ class Pod implements CircleInterface {
      * @return int
      */
     public function getThrust() : int {
-        if (abs($this->getAngleToTarget()) > 90)
-            return 0;
-
-        if ($this->getDistanceToTarget() < 800)
-            return 35;
-
-        if ($this->getDistanceToTarget() < 1200)
-            return 70;
-
         return $this->thrust;
+    }
+
+    /**
+     * setThrust
+     *
+     * @param int $thrust
+     */
+    protected function setThrust(int $thrust) {
+        $this->thrust = $thrust;
+    }
+
+    /**
+     * calculateThrust
+     *
+     * Calculate thrust based on pod stats
+     *
+     * @return int
+     */
+    protected function calculateThrust() : int {
+        $absAngle = abs($this->getAngleToTarget());
+
+        if ($absAngle > 90)
+            return 2;
+
+        if ($absAngle < 2 || ($absAngle < 15 && $this->getDistanceToTarget() < 800))
+            return 100;
+
+        if ($this->getDistanceToTarget() < 1000)
+            return 30;
+
+        if ($this->getDistanceToTarget() < 1500)
+            return 45;
+
+        if ($this->getDistanceToTarget() < 2000)
+            return 60;
+
+        return 100;
+    }
+
+    /**
+     * getLap
+     *
+     * Return the current lap of the pod
+     *
+     * @return int
+     */
+    public function getLap() : int {
+        return $this->lap;
     }
 
     /**
      * logStatus
      *
      * Output status to STDERR
+     *
+     * @param bool $sendToSTDERR
+     *
+     * @return string
      */
-    public function logStatus() : void {
-        $this->checkpoints->logCheckpoints();
+    public function logStatus(bool $sendToSTDERR = true) : string {
+        $message = "{$this->owner}\n-----\nBoosted? ";
+        $message .= $this->boosted ? 'TRUE' : 'FALSE';
+        $message .= "}\n-----\n";
+        $message .= $this->checkpoints->logCheckpoints(false);
+
+        if ($sendToSTDERR)
+            error_log($message);
+
+        return $message;
     }
 
     /**
@@ -157,6 +222,13 @@ class Pod implements CircleInterface {
     public function __toString() : string {
         $targetPoint = $this->getTarget()->getPoint();
 
-        return "{$targetPoint->x()} {$targetPoint->y()} {$this->getThrust()}" . PHP_EOL;
+        if ($this->booster && $this->getLap() > 1 && !$this->boosted && $this->getAngleToTarget() < 5 && $this->getDistanceToTarget() > 6000) {
+            $thrust = 'BOOST';
+            $this->boosted = true;
+        } else {
+            $thrust = $this->getThrust();
+        }
+
+        return "{$targetPoint->x()} {$targetPoint->y()} {$thrust}" . PHP_EOL;
     }
 }

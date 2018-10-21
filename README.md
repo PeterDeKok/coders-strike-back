@@ -22,6 +22,9 @@ Run `make` to concatenate all files into `./build/main.php`
 I run the following line to make the file, test the PHP syntax and copy the content to the clipboard.
 `make && php72 -l ./build/main.php && cat ./build/main.php | pbcopy`
 
+Note that the file names from any classes/traits/interfaces used in any of the other files should be in 
+the correct alphabetical order, otherwise when these constructs are used, they will not be found.
+
 ### Windows 
 I did not create this yet. And I'm not planning this for the future.
 However I am open to a PR.

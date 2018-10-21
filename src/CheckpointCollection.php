@@ -101,15 +101,22 @@ class CheckpointCollection implements ArrayAccess, Iterator, Countable {
      * logCheckpoints
      *
      * Logs a list of the checkpoints to STDERR
+     *
+     * @param bool $sendToSTDERR
+     *
+     * @return string
      */
-    public function logCheckpoints() : void {
-        $temp = [];
+    public function logCheckpoints(bool $sendToSTDERR = true) : string {
+        $temp = "Checkpoints:";
 
         foreach($this as $id => $checkpoint) {
-            $temp[] = "  $id {$checkpoint}";
+            $temp .= "\n  $id {$checkpoint}";
         }
 
-        error_log("Checkpoints:\n" . implode("\n", $temp));
+        if ($sendToSTDERR)
+            error_log($temp);
+
+        return $temp;
     }
 
     /**
