@@ -1,5 +1,7 @@
 #!/bin/sh
 
+mkdir build > /dev/null 2>&1
+
 echo "<?php" > build/main.php
 
 for file in src/*; do
