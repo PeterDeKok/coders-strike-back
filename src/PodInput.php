@@ -27,6 +27,10 @@ class PodInput {
         }
     }
 
+    public function isPlayer() {
+        return !is_null($this->nextCheckpointPoint);
+    }
+
     /**
      * @return mixed
      */

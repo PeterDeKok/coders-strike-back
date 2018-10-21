@@ -91,4 +91,15 @@ class Checkpoint implements CircleInterface {
     public function setPrevious($previous) : void {
         $this->previous = $previous;
     }
+
+    /**
+     * toString
+     *
+     * Return a string representation of this checkpoint
+     *
+     * @return string
+     */
+    public function __toString() {
+        return "(hit {$this->getHits()}x): {$this->getPoint()->x()} x {$this->getPoint()->y()}";
+    }
 }

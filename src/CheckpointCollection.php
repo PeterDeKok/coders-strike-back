@@ -106,7 +106,7 @@ class CheckpointCollection implements ArrayAccess, Iterator, Countable {
         $temp = [];
 
         foreach($this as $id => $checkpoint) {
-            $temp[] = "  $id (hit {$checkpoint->getHits()}x): {$checkpoint->getPoint()->x()} x {$checkpoint->getPoint()->y()}";
+            $temp[] = "  $id {$checkpoint}";
         }
 
         error_log("Checkpoints:\n" . implode("\n", $temp));

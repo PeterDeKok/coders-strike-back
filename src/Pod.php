@@ -22,7 +22,7 @@ class Pod implements CircleInterface {
         $this->checkpoints = new CheckpointCollection();
         $this->radius = 400;
         $this->owner = $owner;
-        $this->point = new Point(0, 0);
+        $this->point = new Point(0, 0); // Dummy point... The pod needs to be somewhere
         $this->target = new Checkpoint(new Point(0, 0)); // Dummy checkpoint... The pod needs to go somewhere
     }
 
@@ -30,7 +30,6 @@ class Pod implements CircleInterface {
      * update
      *
      * Update the coordinates of the current position.
-     * Returns true if the target changes.
      *
      * @param \PodInput $input
      *
@@ -47,25 +46,30 @@ class Pod implements CircleInterface {
         $this->point = $input->getPoint();
 
         // Input for player is more extensive compared to the input for the enemy.
-        if (!is_null($nextCheckpointPoint = $input->getNextCheckpointPoint())) {
-            $this->distanceToTarget = $input->getNextCheckpointDistance();
-            $this->angleToTarget = $input->getNextCheckpointAngle();
-            $lastCheckpoint = $this->getTarget();
-
-            $nextCheckpoint = $this->checkpoints->seeCheckpoint($nextCheckpointPoint);
-
-            $this->setTarget($nextCheckpoint);
-
-            if (!$this->getTarget()->compare($lastCheckpoint))
-                $lastCheckpoint->hit();
-
-            if (!$lastCheckpoint->next()->compare($nextCheckpoint)) {
-                error_log('Checkpoints integrity violation.');
-                $this->logStatus();
-            }
-        }
+        if ($input->isPlayer())
+            $this->updatePlayer($input);
 
         return $this;
+    }
+
+    /**
+     * updatePlayer
+     *
+     * Update the player parameters
+     *
+     * @param \PodInput $input
+     */
+    public function updatePlayer(PodInput $input) {
+        $this->distanceToTarget = $input->getNextCheckpointDistance();
+        $this->angleToTarget = $input->getNextCheckpointAngle();
+
+        $lastCheckpoint = $this->getTarget();
+        $nextCheckpoint = $this->checkpoints->seeCheckpoint($input->getNextCheckpointPoint());
+
+        $this->setTarget($nextCheckpoint);
+
+        if (!$lastCheckpoint->compare($lastCheckpoint))
+            $lastCheckpoint->hit();
     }
 
     /**
