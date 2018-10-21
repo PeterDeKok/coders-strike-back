@@ -8,29 +8,22 @@
  * Time: 22:53
  */
 
-class Pod implements PointableInterface {
+class Pod implements CircleInterface {
 
-    use Pointable;
-    protected $target;
-    protected $thrust = 100;
+    use Circle;
+    protected $checkpoints;
     protected $owner;
+    protected $thrust = 100; // TODO Should these be here? -> Movable interface/trait ?
+    protected $target; // TODO Should these be here?
     protected $angleToTarget = 0; // TODO Should these be here?
     protected $distanceToTarget = 0; // TODO Should these be here?
 
     public function __construct(string $owner) {
+        $this->checkpoints = new CheckpointCollection();
+        $this->radius = 400;
         $this->owner = $owner;
-        $this->target = new Point(0, 0);
-    }
-
-    /**
-     * isActive
-     *
-     * Returns if the pod is initialized
-     *
-     * @return bool
-     */
-    public function isActive() {
-        return !is_null($this->getPoint());
+        $this->point = new Point(0, 0);
+        $this->target = new Checkpoint(new Point(0, 0)); // Dummy checkpoint... The pod needs to go somewhere
     }
 
     /**
@@ -39,11 +32,11 @@ class Pod implements PointableInterface {
      * Update the coordinates of the current position.
      * Returns true if the target changes.
      *
-     * @param array $input
+     * @param \PodInput $input
      *
-     * @return bool
+     * @return \Pod
      */
-    public function update(array $input) : bool {
+    public function update(PodInput $input) : Pod {
         // 0: x position of the pod
         // 1: y position of the pod
         // 2: x position of the next check point
@@ -51,20 +44,28 @@ class Pod implements PointableInterface {
         // 4: distance to the next checkpoint
         // 5: angle between your pod orientation and the direction of the next checkpoint
 
-        if (is_null($this->point))
-            $this->point = new Point($input[0], $input[1]);
-        else
-            $this->point->update($input[0], $input[1]);
+        $this->point = $input->getPoint();
 
-        if (count($input) >= 6) {
-            $this->distanceToTarget = $input[4];
-            $this->angleToTarget = $input[5];
+        // Input for player is more extensive compared to the input for the enemy.
+        if (!is_null($nextCheckpointPoint = $input->getNextCheckpointPoint())) {
+            $this->distanceToTarget = $input->getNextCheckpointDistance();
+            $this->angleToTarget = $input->getNextCheckpointAngle();
+            $lastCheckpoint = $this->getTarget();
 
-            if ($this->getTarget()->x() !== $input[2] && $this->getTarget()->y() !== $input[3])
-                return true;
+            $nextCheckpoint = $this->checkpoints->seeCheckpoint($nextCheckpointPoint);
+
+            $this->setTarget($nextCheckpoint);
+
+            if (!$this->getTarget()->compare($lastCheckpoint))
+                $lastCheckpoint->hit();
+
+            if (!$lastCheckpoint->next()->compare($nextCheckpoint)) {
+                error_log('Checkpoints integrity violation.');
+                $this->logStatus();
+            }
         }
 
-        return false;
+        return $this;
     }
 
     /**
@@ -72,28 +73,21 @@ class Pod implements PointableInterface {
      *
      * Returns the target of the pod
      *
-     * @return \Point
+     * @return \Checkpoint
      */
-    public function getTarget() : Point {
+    public function getTarget() : Checkpoint {
         return $this->target;
     }
 
     /**
      * setTarget
      *
-     * @param \PointableInterface|int $point
-     * @param int|null $pointY
+     * @param \Checkpoint $point
      *
      * @return \Pod
-     * @throws \Exception
      */
-    public function setTarget($point, int $pointY = null) : Pod {
-        if (is_int($point) && !is_null($pointY))
-            $this->target = new Point($point, $pointY);
-        else if (($point instanceof PointableInterface) && !is_null($point->getPoint()))
-            $this->target = $point->getPoint();
-        else
-            throw new \Exception('Cannot initialize checkpoint without valid point');
+    public function setTarget(Checkpoint $point) : Pod {
+        $this->target = $point;
 
         return $this;
     }
@@ -105,7 +99,7 @@ class Pod implements PointableInterface {
      *
      * @return int
      */
-    public function getAngleToTarget() {
+    public function getAngleToTarget() : int {
         return $this->angleToTarget;
     }
 
@@ -116,7 +110,7 @@ class Pod implements PointableInterface {
      *
      * @return int
      */
-    public function getDistanceToTarget() {
+    public function getDistanceToTarget() : int {
         return $this->distanceToTarget;
     }
 
@@ -141,6 +135,15 @@ class Pod implements PointableInterface {
     }
 
     /**
+     * logStatus
+     *
+     * Output status to STDERR
+     */
+    public function logStatus() : void {
+        $this->checkpoints->logCheckpoints();
+    }
+
+    /**
      * toString
      *
      * Return the command that can be send to STDOUT
@@ -148,9 +151,8 @@ class Pod implements PointableInterface {
      * @return string
      */
     public function __toString() : string {
-        if (!$this->isActive())
-            return PHP_EOL;
+        $targetPoint = $this->getTarget()->getPoint();
 
-        return "{$this->getTarget()->x()} {$this->getTarget()->y()} {$this->getThrust()}" . PHP_EOL;
+        return "{$targetPoint->x()} {$targetPoint->y()} {$this->getThrust()}" . PHP_EOL;
     }
 }

@@ -30,31 +30,35 @@ class CheckpointCollection implements ArrayAccess, Iterator, Countable {
      * @return \Checkpoint|null
      */
     public function getCheckpoint(int $id) : ?Checkpoint {
-        return $this->checkpoints[$id] ?? null;
+        return $this[$id] ?? null;
     }
 
     /**
      * findCheckpoint
      *
-     * @param \PointableInterface|int $point
-     * @param int|null $pointY
+     * Return the checkpoint corresponding to the provided pointable if it exists
+     *
+     * @param \PointableInterface $point
+     *
+     * @return \Checkpoint|null
+     */
+    public function findCheckpoint(PointableInterface $point) : ?Checkpoint {
+        return $this->getCheckpoint($this->findCheckpointId($point));
+    }
+
+    /**
+     * findCheckpointId
+     *
+     * Return the checkpoint ID corresponding to the provided pointable.
+     * If it does not exist, return -1
+     *
+     * @param \PointableInterface $point
      *
      * @return int
-     * @throws \Exception
      */
-    public function findCheckpoint($point, int $pointY = null) {
-        if (is_int($point) && !is_null($pointY)) {
-            $x = $point;
-            $y = $pointY;
-        } else if (($point instanceof PointableInterface) && !is_null($point->getPoint())) {
-            $x = $point->getPoint()->x();
-            $y = $point->getPoint()->y();
-        } else {
-            throw new \Exception('Cannot process checkpoint without valid point');
-        }
-
+    public function findCheckpointId(PointableInterface $point) : int {
         foreach ($this->getCheckpoints() as $id => $checkpoint) {
-            if ($x === $checkpoint->getPoint()->x() && $y === $checkpoint->getPoint()->y())
+            if ($checkpoint->getPoint()->compare($point))
                 return $id;
         }
 
@@ -64,32 +68,33 @@ class CheckpointCollection implements ArrayAccess, Iterator, Countable {
     /**
      * seeCheckpoint
      *
-     * @param \PointableInterface|int $point
-     * @param int|null $pointY
+     * @param \PointableInterface $point
      *
-     * @return int|string
-     * @throws \Exception
+     * @return \Checkpoint
      */
-    public function seeCheckpoint($point, int $pointY = null) {
-        if (is_int($point) && !is_null($pointY)) {
-            $found = $this->findCheckpoint($point, $pointY);
-        } else if (($point instanceof PointableInterface) && !is_null($point->getPoint())) {
-            $found = $this->findCheckpoint($point->getPoint()->x(), $point->getPoint()->x());
-        } else {
-            throw new \Exception('Cannot process checkpoint without valid point');
+    public function seeCheckpoint(PointableInterface $point) : Checkpoint {
+        if (is_null($checkpoint = $this->findCheckpoint($point))) {
+            $checkpoint = ($point instanceof Checkpoint) ? $point : new Checkpoint($point);
+
+            $this->addCheckpoint($checkpoint);
         }
 
-        if ($found < 0) {
-            try {
-                $checkpoint = ($point instanceof Checkpoint) ? $point : new Checkpoint($point, $pointY);
+        return $checkpoint;
+    }
 
-                $found = array_push($this->checkpoints, $checkpoint) - 1;
-            } catch (Exception $e) {
-                $found = -1;
-            }
+    protected function addCheckpoint(Checkpoint $checkpoint) {
+        if ($this->count() > 0) {
+            $firstCheckpoint = $this->rewind();
+            $lastCheckpoint = $this->end();
+
+            $checkpoint->setPrevious($lastCheckpoint);
+            $checkpoint->setNext($firstCheckpoint);
+
+            $lastCheckpoint->setNext($checkpoint);
+            $firstCheckpoint->setPrevious($checkpoint);
         }
 
-        return $found;
+        array_push($this->checkpoints, $checkpoint);
     }
 
     /**
@@ -97,7 +102,7 @@ class CheckpointCollection implements ArrayAccess, Iterator, Countable {
      *
      * Logs a list of the checkpoints to STDERR
      */
-    public function logCheckpoints() {
+    public function logCheckpoints() : void {
         $temp = [];
 
         foreach($this as $id => $checkpoint) {
@@ -201,20 +206,28 @@ class CheckpointCollection implements ArrayAccess, Iterator, Countable {
     /**
      * Rewind the Iterator to the first element
      * @link https://php.net/manual/en/iterator.rewind.php
-     * @return void Any returned value is ignored.
+     * @return \Checkpoint|false The value of the first checkpoint or false for empty array. For the iterator, any returned value is ignored.
      * @since 5.0.0
      */
     public function rewind() {
-        reset($this->checkpoints);
+        return reset($this->checkpoints);
     }
 
     /**
-     * Count elements of an object
+     * Set the internal pointer of an array to its last element
+     * @link https://php.net/manual/en/function.end.php
+     * @return \Checkpoint|false The value of the last checkpoint or false for empty array.
+     * @since 4.0
+     * @since 5.0
+     */
+    public function end() {
+        return end($this->checkpoints);
+    }
+
+    /**
+     * Count of checkpoints
      * @link https://php.net/manual/en/countable.count.php
-     * @return int The custom count as an integer.
-     * </p>
-     * <p>
-     * The return value is cast to an integer.
+     * @return int The count as an integer.
      * @since 5.1.0
      */
     public function count() {

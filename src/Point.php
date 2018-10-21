@@ -75,23 +75,30 @@ class Point implements PointableInterface {
     }
 
     /**
+     * compare
+     *
+     * Returns if the coordinates of this point and the provided pointable are the same
+     *
+     * @param \PointableInterface $point
+     *
+     * @return bool
+     */
+    public function compare(PointableInterface $point) : bool {
+        return $this->x() === $point->getPoint()->x() && $this->y() === $point->getPoint()->y();
+    }
+
+    /**
      * distanceTo
      *
      * Returns the distance between this point and the provided one.
      * Note, this method uses an approximation for the square root needed.
      *
-     * @param \PointableInterface|int $point
-     * @param int|null $pointY
+     * @param \PointableInterface $point
      *
      * @return float|int
      */
-    public function distanceTo($point, int $pointY = null) : ?float {
-        $distanceSquared = $this->distanceToSquared($point, $pointY);
-
-        if ($distanceSquared < 0)
-            return $distanceSquared;
-
-        return $this->fastInvSqrt($distanceSquared);
+    public function distanceTo($point) : ?float {
+        return $this->fastInvSqrt($this->distanceToSquared($point));
     }
 
     /**
@@ -101,30 +108,15 @@ class Point implements PointableInterface {
      * This is half of a method returning the distance,
      * but as the squared distance is sometimes needed for further calculation I split it.
      *
-     * @param \PointableInterface|int $point
-     * @param int|null $pointY
+     * @param \PointableInterface $point
      *
      * @return int
      */
-    public function distanceToSquared($point, int $pointY = null) : ?int {
-        if ($point instanceof PointableInterface)
-            $point = $point->getPoint();
+    public function distanceToSquared(PointableInterface $point) : int {
+        $point = $point->getPoint();
 
-        if (is_int($point) && !is_null($pointY)) {
-            $x2 = $point;
-            $y2 = $pointY;
-        } else if ($point instanceof Point) {
-            $x2 = $point->x();
-            $y2 = $point->y();
-        } else {
-            return -1;
-        }
-
-        $x1 = $this->x();
-        $y1 = $this->y();
-
-        $x = $x1 - $x2;
-        $y = $y1 - $y2;
+        $x = $this->x() - $point->x();
+        $y = $this->y() - $point->y();
 
         return $x * $x + $y * $y;
     }
@@ -148,4 +140,24 @@ class Point implements PointableInterface {
 
         return $y * (1.5 - 0.5 * $x * $y * $y);
     }
+
+    /**
+     * angle
+     *
+     * Return the angle between this point and 2 others,
+     * Angle between A-B-C with B being this point
+     *
+     * @param \Point $pointA
+     * @param \Point $pointC
+     *
+     * @return int
+     */
+    public function angle(Point $pointA, Point $pointC) : int {
+        $vectorAB = new Vector($pointA, $this);
+        $vectorCB = new Vector($pointC, $this);
+
+        return $vectorAB->angle($vectorCB);
+    }
 }
+
+

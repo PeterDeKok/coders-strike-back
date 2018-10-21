@@ -8,27 +8,23 @@
  * Time: 17:51
  */
 
-class Checkpoint implements PointableInterface {
+class Checkpoint implements CircleInterface {
 
-    use Pointable;
-    protected $radius = 600;
-    protected $hits   = 0;
+    use Circle;
+    protected $hits = 0;
+    protected $next;
+    protected $previous;
 
     /**
      * Checkpoint constructor.
      *
-     * @param \PointableInterface|int $point
-     * @param int|null $pointY
-     *
-     * @throws \Exception
+     * @param \PointableInterface $point
      */
-    public function __construct($point, int $pointY = null) {
-        if (is_int($point) && !is_null($pointY))
-            $this->point = new Point($point, $pointY);
-        else if (($point instanceof PointableInterface) && !is_null($point->getPoint()))
-            $this->point = $point->getPoint();
-        else
-            throw new \Exception('Cannot initialize checkpoint without valid point');
+    public function __construct(PointableInterface $point) {
+        $this->radius = 600;
+        $this->point = $point->getPoint();
+        $this->next = $this;
+        $this->previous = $this;
     }
 
     /**
@@ -53,5 +49,46 @@ class Checkpoint implements PointableInterface {
      */
     public function getHits() : int {
         return $this->hits;
+    }
+
+    /**
+     * compare
+     *
+     * Returns if the coordinates of this checkpoint and the provided checkpoint are the same
+     *
+     * @param \Checkpoint $other
+     *
+     * @return bool
+     */
+    public function compare(Checkpoint $other) : bool {
+        return $this->getPoint()->compare($other->getPoint());
+    }
+
+    /**
+     * @return \Checkpoint
+     */
+    public function next() : Checkpoint {
+        return $this->next;
+    }
+
+    /**
+     * @param mixed $next
+     */
+    public function setNext($next) : void {
+        $this->next = $next;
+    }
+
+    /**
+     * @return \Checkpoint
+     */
+    public function previous() : Checkpoint {
+        return $this->previous;
+    }
+
+    /**
+     * @param mixed $previous
+     */
+    public function setPrevious($previous) : void {
+        $this->previous = $previous;
     }
 }

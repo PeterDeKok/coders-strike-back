@@ -25,12 +25,11 @@ interface PointableInterface {
      * Returns the distance between this point and the provided one.
      * Note, this method uses an approximation for the square root needed.
      *
-     * @param \PointableInterface|int $point
-     * @param int|null $pointY
+     * @param \PointableInterface $point
      *
-     * @return float|null
+     * @return float
      */
-    public function distanceTo($point, int $pointY = null) : ?float;
+    public function distanceTo(PointableInterface $point) : ?float;
 
     /**
      * distanceToSquared
@@ -39,10 +38,9 @@ interface PointableInterface {
      * This is half of a method returning the distance,
      * but as the squared distance is sometimes needed for further calculation I split it.
      *
-     * @param \PointableInterface|int $point
-     * @param int|null $pointY
+     * @param \PointableInterface $point
      *
-     * @return int|null
+     * @return int
      */
-    public function distanceToSquared($point, int $pointY = null) : ?int;
+    public function distanceToSquared(PointableInterface $point) : ?int;
 }
